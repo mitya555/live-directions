@@ -1,0 +1,154 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN" >
+<html>
+<head>
+	<title></title>
+	<link type="text/css" href="http://ajax.googleapis.com/ajax/libs/jqueryui/1.8/themes/base/jquery-ui.css" rel="stylesheet" />
+	<script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.4.2/jquery.min.js"></script>
+	<script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jqueryui/1.8.7/jquery-ui.js"></script>
+	<script type="text/javascript" src="js/jquery.rightClick.js"></script>
+	<!-- <script type="text/javascript" src="http://www.google.com/jsapi"></script> -->
+	<script type="text/javascript" src="http://maps.google.com/maps/api/js?v=3&sensor=false"></script>
+	<script type="text/javascript" src="mercator.js"></script>
+	<script type="text/javascript" src="latlng_calc.js"></script>
+	<!-- <script type="text/javascript" src="LatLng2MDStatePlane.js"></script> -->
+	<script type="text/javascript" src="geocode.js"></script>
+	<script type="text/javascript" src="init.js"></script>
+	<script type="text/javascript">
+		$(function() {
+			// initialize google maps
+			google_maps_init(); 	// init.js
+		});
+		var address_format_help = function() {
+			//alert('Please enter address (e.g. "441 4th st NW, Washington, DC");\r\n' +
+			//	'street intersection (e.g. "4th st NW and H st NW, Washington, DC");\r\n' +
+			//	//'street block (e.g. "4th st NW from G st NW to H st NW, Washington, DC");\r\n' +
+			//	'or coordinates: <Lat.>,<Long.> (e.g. "38.896377,-77.029266")');
+			$("div#address-format-help").dialog({
+				width: 500,
+				height: 100,
+				modal: true,
+				close: function() { $(this).dialog("destroy"); }
+			});
+		},
+		directions_help = function() {
+			$("div#directions-help").dialog({
+				width: 500,
+				height: 100,
+				modal: true,
+				close: function() { $(this).dialog("destroy"); }
+			});
+		};
+	</script>
+	<style type="text/css">
+		tr#help td { font: 9pt Tahoma,Arial; padding-left: 8px; }
+
+		div.push-button 
+		{
+			background-color: /*#eeeeee*/white; border-width: 2; border-style: outset;
+			font-size: 9pt; font-family: arial,sans-serif; cursor: pointer;
+			-moz-user-select: none; -khtml-user-select: none; -webkit-user-select: none; user-select: none;
+		}
+		div.pressed { border-style: inset; font-weight: bold; padding-top: 1px; }
+		div.push-button-container
+		{
+			border: solid 1px #666666; border-bottom: none; /*margin-right: 5px;*/
+		}
+		div.pressed-container { border-top: none; border-left: none; }
+
+		div.pane-container
+		{
+			overflow: auto; border: solid 1px #666666; background-color: white; margin-right: 5px;
+		}
+
+		div.dir-container
+		{
+			height: 80%; width: 180pt; padding: 5px 5px 5px 5px;
+		}
+		div.dir-container table.adp-directions td.adp-substep { font-size: 8pt; font-family: arial,sans-serif; }
+		div.dir-container div.adp-summary { font-size: 8pt; font-family: arial,sans-serif; }
+		div.dir-container div.adp-legal { font-size: 8pt; font-family: arial,sans-serif; }
+		div.dir-container table.adp-placemark td.adp-text { font-size: 9pt; font-family: arial,sans-serif; }
+		
+		.remove-route {}
+		
+		tr.selected { background-color: Yellow; }
+		
+		div.dir-step-streetview-container { width: 350px; height: 200px; }
+		div.dir-step-info-container { width: 350px; font-size: 9pt; font-family: arial,sans-serif; margin-top: 4px; }
+
+		div.drive-streetview-container { width: 400px; height: 250px; border: #666666 1px solid; }
+		
+		div.adp-summary { height: 10pt; }
+		.adp-summary-content { float: left; }
+		.drive-animate-switch { float: right; }
+		
+		div.drive-street-view-speed-control { height: 5pt; width: 80px; margin-top: 5pt; font-size: 5pt; }
+		span.drive-street-view-resolution-container { margin-right: 6px; margin-top: -2px; }
+		span.drive-street-view-resolution-container select { font-size: 7pt; }
+		span.drive-street-view-button-container { margin-right: 3px; }
+		
+		div.ui-dialog { font-size: 0.7em; }
+	</style>
+</head>
+<body style="margin: 0;">
+	<table border="0" cellpadding="0" cellspacing="0" style="height: 100%; width: 100%">
+		<tr>
+			<td width="100%" height="100%">
+				<div id="map" style="width: 100%; height: 100%"></div>
+			</td>
+		</tr>
+		<tr><td><hr /></td></tr>
+		<tr id="help"><td style="padding-bottom:5px;">
+			<table cellpadding="0" cellspacing="0" width="100%"><tr><td valign="top" align="center" style="width: 50%;">
+				<table cellpadding="0" cellspacing="0"><tr><td valign="top">
+					Enter address or right-click the map to get directions <b>from</b>:&nbsp;<img 
+						src="images/ques_lg_.png" alt="address format help" 
+						style="vertical-align: middle;"
+						onclick="address_format_help();" /></td></tr>
+				<tr><td>
+					<table cellpadding="0" cellspacing="0" width="100%"><tr><td style="width: 100%; padding-left: 0;">
+						<input type="text" id="address" style="width: 98%;" /><select id="select-address" style="display: none;"></select></td>
+						<td id="addr-buttons" style="padding-left: 0;"><img src="images/crosshair.png" onclick="gotoAddress(0);" 
+							alt="locate address on the map" title="Locate address on the map" />&nbsp;<img src="images/erase.png" 
+							onclick="clearAddress(0);" alt="delete address" title="Delete address" /></td>
+					</tr></table>
+				</td></tr></table>
+			</td><td align="center" valign="middle" nowrap="nowrap">
+					&laquo;-&nbsp;<a href="javascript:showDirections();">Directions</a>&nbsp;<img 
+						src="images/ques_lg_.png" alt="directions help" 
+						style="vertical-align: bottom;" 
+						onclick="directions_help();" />-&raquo;
+			</td><td valign="top" align="center" style="width: 50%;">
+				<table cellpadding="0" cellspacing="0"><tr><td valign="top">
+					Enter address or right-click the map to get directions <b>to</b>:&nbsp;<img 
+						src="images/ques_lg_.png" alt="address format help" 
+						style="vertical-align: middle;" 
+						onclick="address_format_help();" /></td></tr>
+				<tr><td>
+					<table cellpadding="0" cellspacing="0" width="100%"><tr><td style="width: 100%; padding-left: 0;">
+						<input type="text" id="address-2" style="width: 98%;" /><select id="select-address-2" style="display: none;"></select></td>
+						<td id="addr-buttons" style="padding-left: 0;"><img src="images/crosshair.png" onclick="gotoAddress(1);" 
+							alt="locate address on the map" title="Locate address on the map" />&nbsp;<img src="images/erase.png" 
+							onclick="clearAddress(1);" alt="delete address" title="Delete address" /></td>
+					</tr></table>
+				</td></tr></table>
+			</td></tr></table>
+		</td></tr>
+	</table>
+	<div id="address-format-help" style="display:none;">
+		Please enter: <ul style="margin-top:10px;">
+		<li>address (e.g. "441 4th st NW, Washington, DC");</li>
+		<li>street intersection (e.g. "4th st NW and H st NW, Washington, DC"); or</li>
+		<!-- <li>street block (e.g. "4th st NW from G st NW to H st NW, Washington, DC");</li> -->
+		<li>coordinates: [Lat.],[Long.] (e.g. "38.896377,-77.029266")</li>
+		</ul>			
+	</div>
+	<div id="directions-help" style="display:none;">
+		<ul style="margin-top:10px;">
+		<li>Click the <b>Directions Step</b> to inspect directions.</li>
+		<li>Click the <b>"Animate"</b> link at the <b>Directions Panel</b> to enter the "driving" mode.</li>
+		<li>Click the <b>Directions Line</b> while "driving" to move current position to the point clicked.</li>
+		</ul>
+	</div>
+</body>
+</html>
