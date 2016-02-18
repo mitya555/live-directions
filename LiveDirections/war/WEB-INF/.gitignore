@@ -1,1 +1,7 @@
 /classes
+
+/lib/appengine-*
+/lib/datanucleus-*
+/lib/geronimo-*
+/lib/jdo2-api-*
+/lib/jsr107cache-*
